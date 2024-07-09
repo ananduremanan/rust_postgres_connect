@@ -44,36 +44,6 @@ async fn main() {
     axum::serve(listener, app).await.expect("Error Serving App");
 }
 
-// #[derive(Serialize)]
-// struct Student {
-//     student_id: Option<i32>,
-//     first_name: Option<String>,
-//     last_name: Option<String>,
-//     grade: Option<i32>,
-// }
-
-// async fn get_students(
-//     State(pg_pool): State<PgPool>,
-// ) -> Result<(StatusCode, String), (StatusCode, String)> {
-//     let rows = sqlx::query_as!(
-//         Student,
-//         "SELECT student_id, first_name, last_name, grade FROM student"
-//     )
-//     .fetch_all(&pg_pool)
-//     .await
-//     .map_err(|e| {
-//         (
-//             StatusCode::INTERNAL_SERVER_ERROR,
-//             json!({"success": false, "message": e.to_string()}).to_string(),
-//         )
-//     })?;
-
-//     Ok((
-//         StatusCode::OK,
-//         json!({"success": true, "data": rows}).to_string(),
-//     ))
-// }
-
 #[derive(Serialize, Deserialize)]
 struct Student {
     student_id: Option<i32>,
@@ -82,6 +52,7 @@ struct Student {
     grade: Option<i32>,
 }
 
+// http GET function with calling a postgres function
 async fn get_students(
     State(pg_pool): State<PgPool>,
 ) -> Result<(StatusCode, String), (StatusCode, String)> {
