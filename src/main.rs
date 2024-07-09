@@ -1,4 +1,9 @@
-use axum::{extract::State, http::StatusCode, routing::get, Router};
+use axum::{
+    extract::State,
+    http::StatusCode,
+    routing::{get, post},
+    Router,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sqlx::{postgres::PgPoolOptions, PgPool, Row};
@@ -37,6 +42,7 @@ async fn main() {
     let app: Router = Router::new()
         .route("/", get(|| async { "Hello Nithya" }))
         .route("/get_student_names", get(get_students))
+        .route("/create_student", post(create_student))
         .with_state(pg_pool)
         .layer(cors);
 
@@ -56,7 +62,7 @@ struct Student {
 async fn get_students(
     State(pg_pool): State<PgPool>,
 ) -> Result<(StatusCode, String), (StatusCode, String)> {
-    let row = sqlx::query("SELECT get_student_names() as students")
+    let row = sqlx::query(r#"SELECT get_student_names('{"mode": 1}'::jsonb) as students"#)
         .fetch_one(&pg_pool)
         .await
         .map_err(|e| {
@@ -86,4 +92,9 @@ async fn get_students(
         StatusCode::OK,
         json!({"success": true, "data": students}).to_string(),
     ))
+}
+
+// http POST function to create student
+async fn create_student() {
+    todo!();
 }
