@@ -62,37 +62,6 @@ struct Student {
 async fn get_students(
     State(pg_pool): State<PgPool>,
 ) -> Result<(StatusCode, String), (StatusCode, String)> {
-    // let row = sqlx::query(r#"SELECT get_student_names('{"mode": 1}'::jsonb) as data"#)
-    //     .fetch_one(&pg_pool)
-    //     .await
-    //     .map_err(|e| {
-    //         (
-    //             StatusCode::INTERNAL_SERVER_ERROR,
-    //             json!({"success": false, "message": e.to_string()}).to_string(),
-    //         )
-    //     })?;
-
-    // let students_json: Value = row.try_get("data")
-    //     .map_err(|e| {
-    //         (
-    //             StatusCode::INTERNAL_SERVER_ERROR,
-    //             json!({"success": false, "message": "Failed to get JSON from row: ".to_string() + &e.to_string()}).to_string(),
-    //         )
-    //     })?;
-
-    // let data: Vec<Student> = serde_json::from_value(students_json)
-    //     .map_err(|e| {
-    //         (
-    //             StatusCode::INTERNAL_SERVER_ERROR,
-    //             json!({"success": false, "message": "Failed to deserialize students: ".to_string() + &e.to_string()}).to_string(),
-    //         )
-    //     })?;
-
-    // Ok((
-    //     StatusCode::OK,
-    //     json!({"success": true, "data": data}).to_string(),
-    // ))
-
     let function_name = "get_student_names".to_string();
     let params = json!({"mode": 1});
 
