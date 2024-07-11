@@ -2,11 +2,13 @@ use axum::{
     extract::State,
     http::StatusCode,
     routing::{get, post},
-    Router,
+    Json, Router,
 };
+use gbs_db_connect::gbs_db_connect;
+use http::header::{AUTHORIZATION, CONTENT_TYPE};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
-use sqlx::{postgres::PgPoolOptions, PgPool, Row};
+use serde_json::json;
+use sqlx::{postgres::PgPoolOptions, PgPool};
 use tokio::net::TcpListener;
 use tower_http::cors::{Any, CorsLayer};
 
@@ -18,7 +20,8 @@ async fn main() {
     // Cors middleware
     let cors = CorsLayer::new()
         .allow_origin(["http://localhost:5173".parse().unwrap()])
-        .allow_methods(Any);
+        .allow_methods(Any)
+        .allow_headers([CONTENT_TYPE, AUTHORIZATION]);
 
     // Set variables from env
     let server_addr = std::env::var("SERVER_ADDRESSS").unwrap_or("127.0.0.1:3000".to_owned());
@@ -42,7 +45,7 @@ async fn main() {
     let app: Router = Router::new()
         .route("/", get(|| async { "Hello Nithya" }))
         .route("/get_student_names", get(get_students))
-        .route("/create_student", post(create_student))
+        .route("/set_student_names", post(set_students))
         .with_state(pg_pool)
         .layer(cors);
 
@@ -65,53 +68,36 @@ async fn get_students(
     let function_name = "get_student_names".to_string();
     let params = json!({"mode": 1});
 
-    generic_get::<Student>(State(pg_pool), function_name, params).await
+    gbs_db_connect::<Student>(State(pg_pool), function_name, params).await
 }
 
-// http POST function to create student
-async fn create_student() {
-    todo!();
+#[derive(Serialize, Deserialize)]
+struct SetStudentParams {
+    mode: i32,
+    #[serde(flatten)]
+    student: Student,
 }
 
-async fn generic_get<T>(
+#[derive(Serialize, Deserialize, Debug)]
+struct DatabaseResponse {
+    status: String,
+    message: String,
+}
+
+async fn set_students(
     State(pg_pool): State<PgPool>,
-    function_name: String,
-    params: Value,
-) -> Result<(StatusCode, String), (StatusCode, String)>
-where
-    T: for<'de> Deserialize<'de> + Serialize,
-{
-    let query = format!("SELECT {}($1::jsonb) as data", function_name);
+    Json(params): Json<SetStudentParams>,
+) -> Result<(StatusCode, String), (StatusCode, String)> {
+    let function_name = "set_student".to_string();
+    let params = json!({
+        "mode": params.mode,
+        "student": {
+            "student_id": params.student.student_id,
+            "first_name": params.student.first_name,
+            "last_name": params.student.last_name,
+            "grade": params.student.grade,
+        }
+    });
 
-    let row = sqlx::query(&query)
-        .bind(params)
-        .fetch_one(&pg_pool)
-        .await
-        .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                json!({"success": false, "message": e.to_string()}).to_string(),
-            )
-        })?;
-
-    let result_json: Value = row.try_get("data").map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            json!({"success": false, "message": format!("Failed to get JSON from row: {}", e)})
-                .to_string(),
-        )
-    })?;
-
-    let data: Vec<T> = serde_json::from_value(result_json).map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            json!({"success": false, "message": format!("Failed to deserialize data: {}", e)})
-                .to_string(),
-        )
-    })?;
-
-    Ok((
-        StatusCode::OK,
-        json!({"success": true, "data": data}).to_string(),
-    ))
+    gbs_db_connect::<DatabaseResponse>(State(pg_pool), function_name, params).await
 }
