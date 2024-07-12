@@ -21,6 +21,13 @@ dotenvy = "0.15.7"
 tower-http = {version = "0.5.2", features = ["cors"]}
 gbs_db_connect = "0.0.1"
 http = "1.1.0"
+
+#server logging
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-appender = "0.2"
+
+#encryption
+aes = "0.7.5"
+block-modes = "0.8.1"
+hex = "0.4.3"
