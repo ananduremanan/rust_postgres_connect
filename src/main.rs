@@ -8,20 +8,33 @@ use sqlx::postgres::PgPoolOptions;
 use tokio::net::TcpListener;
 use tower_http::cors::{Any, CorsLayer};
 use tracing::Level;
-use tracing_subscriber::FmtSubscriber;
+use tracing_appender::rolling::daily;
+use tracing_subscriber::{fmt, prelude::*, EnvFilter, FmtSubscriber};
 
 mod student;
+
+fn logging() {
+    let file_appender = daily("logs", "server.log");
+    let subscriber = FmtSubscriber::builder()
+        .with_env_filter(EnvFilter::from_default_env())
+        .with_writer(std::io::stdout)
+        .with_ansi(true)
+        .with_max_level(Level::DEBUG)
+        .finish()
+        .with(
+            fmt::Layer::new()
+                .with_writer(file_appender)
+                .with_ansi(false),
+        );
+
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+}
 
 #[tokio::main]
 async fn main() {
     // Expose env variables
     dotenvy::dotenv().expect("Unable to Find .env File");
-
-    let subscriber = FmtSubscriber::builder()
-        .with_max_level(Level::DEBUG)
-        .finish();
-
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    logging();
 
     // Cors middleware
     let cors = CorsLayer::new()
@@ -54,9 +67,11 @@ async fn main() {
         .route("/set_student_names", post(student::set_students))
         .route("/delete_student", post(student::delete_student))
         .route("/update_student", post(student::update_student))
+        .route("/mock_operation", get(student::mock_costly_operation))
         .with_state(pg_pool)
         .layer(cors);
 
     //serve appliction
+    tracing::info!("Server started");
     axum::serve(listener, app).await.expect("Error Serving App");
 }

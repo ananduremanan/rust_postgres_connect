@@ -92,3 +92,12 @@ pub async fn update_student(
 
     gbs_db_connect::<DatabaseResponse>(State(pg_pool), function_name, student_params).await
 }
+
+pub async fn mock_costly_operation(
+    State(pg_pool): State<PgPool>,
+) -> Result<(StatusCode, String), (StatusCode, String)> {
+    let function_name = "get_student_names".to_string();
+    let params = json!({"mode": 2});
+
+    gbs_db_connect::<Student>(State(pg_pool), function_name, params).await
+}
