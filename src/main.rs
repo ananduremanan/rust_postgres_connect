@@ -47,6 +47,7 @@ async fn main() {
         .route("/get_student_names", get(get_students))
         .route("/set_student_names", post(set_students))
         .route("/delete_student", post(delete_student))
+        .route("/update_student", post(update_student))
         .with_state(pg_pool)
         .layer(cors);
 
@@ -106,7 +107,6 @@ async fn set_students(
 #[derive(Serialize, Deserialize)]
 struct DeleteStudentParams {
     mode: i32,
-    #[serde(flatten)]
     student_id: Option<i32>,
 }
 
@@ -119,5 +119,24 @@ async fn delete_student(
     "mode": params.mode,
     "student_id": params.student_id
     });
+
+    gbs_db_connect::<DatabaseResponse>(State(pg_pool), function_name, params).await
+}
+
+async fn update_student(
+    State(pg_pool): State<PgPool>,
+    Json(params): Json<SetStudentParams>,
+) -> Result<(StatusCode, String), (StatusCode, String)> {
+    let function_name = "set_student".to_string();
+    let params = json!({
+        "mode": params.mode,
+        "student": {
+            "student_id": params.student.student_id,
+            "first_name": params.student.first_name,
+            "last_name": params.student.last_name,
+            "grade": params.student.grade,
+        }
+    });
+
     gbs_db_connect::<DatabaseResponse>(State(pg_pool), function_name, params).await
 }
