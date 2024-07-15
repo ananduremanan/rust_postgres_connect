@@ -1,4 +1,5 @@
 use crate::gbs_db_connect;
+use crate::utils::generic_db_connect::generic_db_connect;
 use axum::{extract::State, http::StatusCode, Json};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -57,7 +58,7 @@ pub async fn set_students(
         }
     });
 
-    gbs_db_connect::<DatabaseResponse>(State(pg_pool), function_name, params).await
+    generic_db_connect::<DatabaseResponse>(State(pg_pool), function_name, params).await
 }
 
 pub async fn delete_student(
@@ -70,7 +71,7 @@ pub async fn delete_student(
     "student_id": params.student_id
     });
 
-    gbs_db_connect::<DatabaseResponse>(State(pg_pool), function_name, params).await
+    generic_db_connect::<DatabaseResponse>(State(pg_pool), function_name, params).await
 }
 
 pub async fn update_student(
@@ -90,7 +91,7 @@ pub async fn update_student(
 
     debug!("Constructed student_params: {:?}", student_params);
 
-    gbs_db_connect::<DatabaseResponse>(State(pg_pool), function_name, student_params).await
+    generic_db_connect::<DatabaseResponse>(State(pg_pool), function_name, student_params).await
 }
 
 pub async fn mock_costly_operation(
@@ -99,5 +100,5 @@ pub async fn mock_costly_operation(
     let function_name = "get_student_names".to_string();
     let params = json!({"mode": 2});
 
-    gbs_db_connect::<Student>(State(pg_pool), function_name, params).await
+    generic_db_connect::<Student>(State(pg_pool), function_name, params).await
 }

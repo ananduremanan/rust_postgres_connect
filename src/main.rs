@@ -12,7 +12,9 @@ use tracing_appender::rolling::daily;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter, FmtSubscriber};
 
 mod student;
+mod utils;
 
+// Logger function to log server logs
 fn logging() {
     let file_appender = daily("logs", "server.log");
     let subscriber = FmtSubscriber::builder()
@@ -36,9 +38,12 @@ async fn main() {
     dotenvy::dotenv().expect("Unable to Find .env File");
     logging();
 
+    let allow_origin =
+        std::env::var("ORIGIN_ADDRESS").unwrap_or("http://localhost:5173".to_owned());
+
     // Cors middleware
     let cors = CorsLayer::new()
-        .allow_origin(["http://localhost:5173".parse().unwrap()])
+        .allow_origin([allow_origin.parse().unwrap()])
         .allow_methods(Any)
         .allow_headers([CONTENT_TYPE, AUTHORIZATION]);
 
