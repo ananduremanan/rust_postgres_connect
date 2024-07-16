@@ -1,28 +1,14 @@
-// use crate::gbs_db_connect;
+use crate::constants::FUNCTION_NAMES;
 use crate::utils::generic_db_connect::generic_db_connect;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     Json,
 };
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::PgPool;
-use std::collections::HashMap;
 use tracing::debug;
-
-// Define a static HashMap to store function names
-static FUNCTION_NAMES: Lazy<HashMap<&'static str, &'static str>> = Lazy::new(|| {
-    let mut m = HashMap::new();
-    m.insert("get_students", "get_student_names");
-    m.insert("set_students", "set_student");
-    m.insert("delete_student", "set_student");
-    m.insert("update_student", "set_student");
-    m.insert("mock_costly_operation", "get_student_names");
-    m.insert("delete_by_id", "set_student");
-    m
-});
 
 #[derive(Serialize, Deserialize)]
 struct Student {

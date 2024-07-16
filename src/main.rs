@@ -11,6 +11,7 @@ use tracing::Level;
 use tracing_appender::rolling::daily;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter, FmtSubscriber};
 
+mod constants;
 mod student;
 mod utils;
 
