@@ -1,5 +1,5 @@
 use axum::{
-    routing::{get, post},
+    routing::{delete, get, post, put},
     Router,
 };
 // use gbs_db_connect::gbs_db_connect;
@@ -73,6 +73,8 @@ async fn main() {
         .route("/delete_student", post(student::delete_student))
         .route("/update_student", post(student::update_student))
         .route("/mock_operation", get(student::mock_costly_operation))
+        .route("/student/:student_id", delete(student::delete_by_id))
+        .route("/student_update/:student_id", put(student::update_by_put))
         .with_state(pg_pool)
         .layer(cors);
 

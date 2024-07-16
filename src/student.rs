@@ -1,6 +1,10 @@
 // use crate::gbs_db_connect;
 use crate::utils::generic_db_connect::generic_db_connect;
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    Json,
+};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -16,6 +20,7 @@ static FUNCTION_NAMES: Lazy<HashMap<&'static str, &'static str>> = Lazy::new(|| 
     m.insert("delete_student", "set_student");
     m.insert("update_student", "set_student");
     m.insert("mock_costly_operation", "get_student_names");
+    m.insert("delete_by_id", "set_student");
     m
 });
 
@@ -129,4 +134,39 @@ pub async fn mock_costly_operation(
     let params = json!({"mode": 2});
 
     generic_db_connect::<Student>(State(pg_pool), function_name, params).await
+}
+
+pub async fn delete_by_id(
+    State(pg_pool): State<PgPool>,
+    Path(student_id): Path<i32>,
+) -> Result<(StatusCode, String), (StatusCode, String)> {
+    let function_name = FUNCTION_NAMES
+        .get("delete_by_id")
+        .unwrap_or(&"")
+        .to_string();
+    let params = json!({"mode": 4, "student_id": student_id});
+
+    generic_db_connect::<DatabaseResponse>(State(pg_pool), function_name, params).await
+}
+
+pub async fn update_by_put(
+    State(pg_pool): State<PgPool>,
+    Path(student_id): Path<i32>,
+    Json(params): Json<SetStudentParams>,
+) -> Result<(StatusCode, String), (StatusCode, String)> {
+    let function_name = FUNCTION_NAMES
+        .get("set_students")
+        .unwrap_or(&"")
+        .to_string();
+    let params = json!({
+        "mode": params.mode,
+        "student": {
+            "student_id": student_id,
+            "first_name": params.student.first_name,
+            "last_name": params.student.last_name,
+            "grade": params.student.grade,
+        }
+    });
+
+    generic_db_connect::<DatabaseResponse>(State(pg_pool), function_name, params).await
 }
