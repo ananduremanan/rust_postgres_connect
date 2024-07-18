@@ -1,4 +1,5 @@
 use axum::{extract::Multipart, extract::State};
+use bytes::Bytes;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fs::{self, File};
@@ -33,23 +34,28 @@ pub async fn handle_upload(
     mut multipart: Multipart,
 ) -> Result<String, String> {
     let upload_dir = Path::new("uploads");
-    if (!upload_dir.exists()) {
+    if !upload_dir.exists() {
         fs::create_dir_all(upload_dir).map_err(|e| e.to_string())?;
     }
 
     let upload_state = app_state.upload_state.lock().await;
     let mut files = upload_state.files.lock().await;
 
-    while let Some(mut field) = multipart.next_field().await.map_err(|e| e.to_string())? {
+    while let Some(field) = multipart.next_field().await.map_err(|e| e.to_string())? {
         let name = field.name().unwrap_or("").to_string();
         let file_name = field.file_name().unwrap_or("").to_string();
 
         if name == "file" && !file_name.is_empty() {
-            let chunk_info: ChunkInfo =
-                serde_json::from_str(&field.text().await.map_err(|e| e.to_string())?)
-                    .map_err(|e| e.to_string())?;
+            let data: Bytes = field.bytes().await.map_err(|e| e.to_string())?;
 
-            let chunk_data = field.bytes().await.map_err(|e| e.to_string())?;
+            // Parse the first part of the data as JSON to get chunk info
+            let chunk_info_str = std::str::from_utf8(&data[..100]) // Assuming chunk info is within first 100 bytes
+                .map_err(|e| e.to_string())?;
+            let chunk_info: ChunkInfo =
+                serde_json::from_str(chunk_info_str).map_err(|e| e.to_string())?;
+
+            // The rest of the data is the actual file content
+            let chunk_data = &data[chunk_info_str.len()..];
 
             let mut file = if chunk_info.chunk == 0 {
                 // First chunk, create new file
@@ -64,7 +70,7 @@ pub async fn handle_upload(
                     .map_err(|e| e.to_string())?
             };
 
-            file.write_all(&chunk_data).map_err(|e| e.to_string())?;
+            file.write_all(chunk_data).map_err(|e| e.to_string())?;
 
             if chunk_info.chunk == chunk_info.chunks - 1 {
                 // Last chunk, close the file
