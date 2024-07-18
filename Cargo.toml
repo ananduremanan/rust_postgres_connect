@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 #server // used to build the server and routes
-axum = "0.7.5"
+axum = {version = "0.7.5", features = ["multipart"]}
 tokio = { version = "1.38.0", features= ["full"] }
 
 #sql // used to connect to db and create db pool

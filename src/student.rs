@@ -1,5 +1,5 @@
-use crate::constants::FUNCTION_NAMES;
 use crate::utils::generic_db_connect::generic_db_connect;
+use crate::{constants::FUNCTION_NAMES, AppState};
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -39,7 +39,7 @@ pub struct DatabaseResponse {
 
 // http GET function with calling a postgres function
 pub async fn get_students(
-    State(pg_pool): State<PgPool>,
+    State(app_state): State<AppState>,
 ) -> Result<(StatusCode, String), (StatusCode, String)> {
     let function_name = FUNCTION_NAMES
         .get("get_students")
@@ -47,7 +47,7 @@ pub async fn get_students(
         .to_string();
     let params = json!({"mode": 1});
 
-    generic_db_connect::<Student>(State(pg_pool), function_name, params).await
+    generic_db_connect::<Student>(State(app_state.pg_pool), function_name, params).await
 }
 
 pub async fn set_students(

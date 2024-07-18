@@ -2,16 +2,22 @@ use axum::{
     routing::{delete, get, post, put},
     Router,
 };
-// use gbs_db_connect::gbs_db_connect;
 use http::header::{AUTHORIZATION, CONTENT_TYPE};
-use sqlx::postgres::PgPoolOptions;
+use sqlx::{postgres::PgPoolOptions, PgPool};
 use tokio::net::TcpListener;
 use tower_http::cors::{Any, CorsLayer};
 use tracing::Level;
 use tracing_appender::rolling::daily;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter, FmtSubscriber};
 
+use std::collections::HashMap;
+use std::fs::File;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+
 mod constants;
+mod fileuploader;
+// mod state;
 mod student;
 mod utils;
 
@@ -31,6 +37,14 @@ fn logging() {
         );
 
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+}
+
+use crate::fileuploader::UploadState;
+
+#[derive(Clone)]
+struct AppState {
+    pg_pool: PgPool,
+    upload_state: Arc<Mutex<UploadState>>,
 }
 
 #[tokio::main]
@@ -57,7 +71,14 @@ async fn main() {
         .max_connections(16)
         .connect(&database_url)
         .await
-        .expect("Can't COnnect!!");
+        .expect("Can't Connect!!");
+
+    let upload_state = Arc::new(Mutex::new(UploadState::new()));
+
+    let app_state = AppState {
+        pg_pool,
+        upload_state,
+    };
 
     // tcp listener
     let listener = TcpListener::bind(server_addr)
@@ -70,13 +91,14 @@ async fn main() {
     let app: Router = Router::new()
         .route("/", get(|| async { "Hello Nithya" }))
         .route("/get_student_names", get(student::get_students))
-        .route("/set_student_names", post(student::set_students))
-        .route("/delete_student", post(student::delete_student))
-        .route("/update_student", post(student::update_student))
-        .route("/mock_operation", get(student::mock_costly_operation))
-        .route("/student/:student_id", delete(student::delete_by_id))
-        .route("/student_update/:student_id", put(student::update_by_put))
-        .with_state(pg_pool)
+        // .route("/set_student_names", post(student::set_students))
+        // .route("/delete_student", post(student::delete_student))
+        // .route("/update_student", post(student::update_student))
+        // .route("/mock_operation", get(student::mock_costly_operation))
+        // .route("/student/:student_id", delete(student::delete_by_id))
+        // .route("/student_update/:student_id", put(student::update_by_put))
+        .route("/upload", post(fileuploader::handle_upload))
+        .with_state(app_state)
         .layer(cors);
 
     //serve appliction
