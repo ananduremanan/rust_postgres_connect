@@ -7,7 +7,6 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sqlx::PgPool;
 use tracing::debug;
 
 #[derive(Serialize, Deserialize)]
@@ -51,7 +50,7 @@ pub async fn get_students(
 }
 
 pub async fn set_students(
-    State(pg_pool): State<PgPool>,
+    State(app_state): State<AppState>,
     Json(params): Json<SetStudentParams>,
 ) -> Result<(StatusCode, String), (StatusCode, String)> {
     let function_name = FUNCTION_NAMES
@@ -68,11 +67,11 @@ pub async fn set_students(
         }
     });
 
-    generic_db_connect::<DatabaseResponse>(State(pg_pool), function_name, params).await
+    generic_db_connect::<DatabaseResponse>(State(app_state.pg_pool), function_name, params).await
 }
 
 pub async fn delete_student(
-    State(pg_pool): State<PgPool>,
+    State(app_state): State<AppState>,
     Json(params): Json<DeleteStudentParams>,
 ) -> Result<(StatusCode, String), (StatusCode, String)> {
     let function_name = FUNCTION_NAMES
@@ -84,11 +83,11 @@ pub async fn delete_student(
     "student_id": params.student_id
     });
 
-    generic_db_connect::<DatabaseResponse>(State(pg_pool), function_name, params).await
+    generic_db_connect::<DatabaseResponse>(State(app_state.pg_pool), function_name, params).await
 }
 
 pub async fn update_student(
-    State(pg_pool): State<PgPool>,
+    State(app_state): State<AppState>,
     Json(params): Json<SetStudentParams>,
 ) -> Result<(StatusCode, String), (StatusCode, String)> {
     let function_name = FUNCTION_NAMES
@@ -107,11 +106,12 @@ pub async fn update_student(
 
     debug!("Constructed student_params: {:?}", student_params);
 
-    generic_db_connect::<DatabaseResponse>(State(pg_pool), function_name, student_params).await
+    generic_db_connect::<DatabaseResponse>(State(app_state.pg_pool), function_name, student_params)
+        .await
 }
 
 pub async fn mock_costly_operation(
-    State(pg_pool): State<PgPool>,
+    State(app_state): State<AppState>,
 ) -> Result<(StatusCode, String), (StatusCode, String)> {
     let function_name = FUNCTION_NAMES
         .get("mock_costly_operation")
@@ -119,11 +119,11 @@ pub async fn mock_costly_operation(
         .to_string();
     let params = json!({"mode": 2});
 
-    generic_db_connect::<Student>(State(pg_pool), function_name, params).await
+    generic_db_connect::<Student>(State(app_state.pg_pool), function_name, params).await
 }
 
 pub async fn delete_by_id(
-    State(pg_pool): State<PgPool>,
+    State(app_state): State<AppState>,
     Path(student_id): Path<i32>,
 ) -> Result<(StatusCode, String), (StatusCode, String)> {
     let function_name = FUNCTION_NAMES
@@ -132,11 +132,11 @@ pub async fn delete_by_id(
         .to_string();
     let params = json!({"mode": 4, "student_id": student_id});
 
-    generic_db_connect::<DatabaseResponse>(State(pg_pool), function_name, params).await
+    generic_db_connect::<DatabaseResponse>(State(app_state.pg_pool), function_name, params).await
 }
 
 pub async fn update_by_put(
-    State(pg_pool): State<PgPool>,
+    State(app_state): State<AppState>,
     Path(student_id): Path<i32>,
     Json(params): Json<SetStudentParams>,
 ) -> Result<(StatusCode, String), (StatusCode, String)> {
@@ -154,5 +154,5 @@ pub async fn update_by_put(
         }
     });
 
-    generic_db_connect::<DatabaseResponse>(State(pg_pool), function_name, params).await
+    generic_db_connect::<DatabaseResponse>(State(app_state.pg_pool), function_name, params).await
 }
